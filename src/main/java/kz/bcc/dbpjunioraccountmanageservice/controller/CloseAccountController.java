@@ -10,7 +10,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping(value = "/api/v2/close-junior-acc")
+@RequestMapping(value = "/api/v2/test1")
 @RequiredArgsConstructor
 @Log4j2
 public class CloseAccountController {

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping(value = "/api/v2/junior-acc")
+@RequestMapping(value = "/api/v2/test")
 @RequiredArgsConstructor
 @Log4j2
 public class ReissueAccountController {
