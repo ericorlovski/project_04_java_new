@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.7.xsd">
+
+    <changeSet id="2023-12-07-close_acc_table.xml" author="kusainan">
+        <createTable tableName="close_acc_table">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="close_acc_pk"/>
+            </column>
+            <column name="junior_phone" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="junior_full_name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="parent_phone" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="parent_full_name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="idn" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="block_reason" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="acc_balance" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="close_reason" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="close_acc_status" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="error_message" type="varchar(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="active" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="current_timestamp" />
+            <column name="updated_at" type="timestamp" defaultValueComputed="current_timestamp" />
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

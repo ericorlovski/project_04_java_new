@@ -1,0 +1,66 @@
+server:
+  port: ${SERVER_PORT:8005}
+management:
+  security:
+    enabled: 'true'
+  endpoints:
+    web:
+      exposure:
+        include: health, info, env
+spring:
+  liquibase:
+    change-log: classpath:db/db.changelog-master.xml
+    password: ${DB_PASSWORD:1475953tima}
+    enabled: 'true'
+    user: ${DB_USERNAME:postgres}
+  datasource:
+    password: ${DB_PASSWORD:1475953tima}
+    username: ${DB_USERNAME:postgres}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:bcc}?currentSchema=${DB_SCHEMA:junior_account}
+  jpa:
+    properties:
+      hibernate:
+        format_sql: 'true'
+        show_sql: 'false'
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://${AUTH_URI:localhost}:${AUTH_PORT:8004}
+debug: 'false'
+api:
+  log:
+    request: 'false'
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /api/v1/swagger/swagger-ui.html
+  pathsToMatch: /api/**
+proxy:
+  url: TEST
+service:
+  cors:
+    allowed-origins: http://localhost, http://test-api:80010
+  actuator:
+    password: ${ACTUATOR_PASSWORD:password}
+  keycloak:
+    client-secret: ${KEYCLOAK_UMG_CLIENT_SECRET:TEST}
+    client-id: ${KEYCLOAK_UMG_CLIENT_ID:TEST}
+    realm: ${KEYCLOAK_REALM:TEST}
+    url: ${KEYCLOAK_UMG_HOST:TEST}/auth/realms/
+  colvir:
+    exec-url: ${COLVIR_HOST:TEST}/colvir/v1/execute
+  mci:
+    exec-url: ${MCI_HOST:TEST}/mcidb/v1/execute
+  dbp_junior_notify:
+    exec-url: ${NOTIFY_HOST:TEST}/api/v2/umg/push/send-push
+    sent-otp: ${NOTIFY_HOST:TEST}/api/v2/otp/sent
+    check-otp: ${NOTIFY_HOST:TEST}/api/v2/otp/check
+  auth-server:
+    token-url: ${AUTH_TOKEN_URL:TEST/api/v2/auth/authenticate}
+    user-data: ${AUTH_USER_DATA:TEST/api/v1/user/colvir}
+    admin-login: ${AUTH_ADMIN_LOGIN:TEST}
+    admin-password: ${AUTH_ADMIN_PASSWORD:TEST}
+validate-token-auth-server: ${AUTH_VALIDATE_TOKEN_HOST:TEST}/api/v1/auth/validate-v2

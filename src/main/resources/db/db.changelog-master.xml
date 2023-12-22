@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.4.xsd">
+
+    <include file="changelog/2023-11-01-create_auth_credentials_table.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/2023-11-01-create_reissue_table.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/2023-11-13-expand_reissue_table.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/2023-11-14-expand_reissue_table.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/2023-11-14-create_reissue_history.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/2023-11-16-expand_reissue_history.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/2023-12-07-create_close_acc_table.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/2023-12-13-create_close_acc_history.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/2023-12-14-expand_close_acc_table.xml" relativeToChangelogFile="true"/>
+
+</databaseChangeLog>

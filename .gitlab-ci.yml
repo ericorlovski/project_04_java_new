@@ -1,0 +1,146 @@
+image: gradle:7.6.3-jdk17
+
+variables:
+  IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+  DOCKER_TLS_VERIFY: "1"
+
+  START_PIPLINE: "Запущен pipeline по проекту *$CI_PROJECT_NAME* \n\n*Ветка:* $CI_COMMIT_REF_SLUG\n*Пользователь:* $GITLAB_USER_NAME\n*URL:* $CI_PIPELINE_URL"
+  SUCCESS_PIPELINE: "✅Pipeline по проекту *$CI_PROJECT_NAME* успешно отработан \n\n*Ветка:* $CI_COMMIT_REF_SLUG\n*Пользователь:* $GITLAB_USER_NAME\n*URL:* $CI_PIPELINE_URL"
+  FAIL_PIPELINE: "❌Ошибка при выолнении pipeline по проекту *$CI_PROJECT_NAME* \n\n*Ветка:* $CI_COMMIT_REF_SLUG\n*Пользователь:* $GITLAB_USER_NAME\n*URL:* $CI_PIPELINE_URL"
+
+stages:
+  - build
+  - docker
+  - release
+  - deploy
+  - notify
+
+.gradle_before: &gradle_before
+  - curl https://nexus.apps.devops.bcc.kz/repository/raw-devops-scripts/gradle/gradle.properties -o ~/.gradle/gradle.properties
+  - curl https://nexus.apps.devops.bcc.kz/repository/raw-devops-scripts/gradle/init.gradle -o ~/.gradle/init.gradle
+
+.docker_before: &docker_before
+  - mkdir -p $HOME/.docker/ && echo $PROXY_CONFIG > $HOME/.docker/config.json
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+.before_docker_build: &before_docker_build
+  - mkdir -p $HOME/.docker/ && echo $PROXY_CONFIG > $HOME/.docker/config.json
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+.before_start_pipeline: &before_start_pipeline
+  - 'curl -s --max-time 60  -d "chat_id=$JUNIOR_TELEGRAM_CHAT_ID &disable_web_page_preview=1&text=$START_PIPLINE&parse_mode=Markdown" https://api.telegram.org/bot$JUNIOR_TELEGRAM_BOT_TOKEN/sendMessage'
+
+.after_script_fail_notify: &after_script_fail_notify
+  - 'curl -s --max-time 60  -d "chat_id=$JUNIOR_TELEGRAM_CHAT_ID &disable_web_page_preview=1&text=$FAIL_PIPELINE&parse_mode=Markdown" https://api.telegram.org/bot$JUNIOR_TELEGRAM_BOT_TOKEN/sendMessage'
+
+.after_script_deploy_success: &after_script_deploy_success
+  - 'curl -s --max-time 60  -d "chat_id=$JUNIOR_TELEGRAM_CHAT_ID &disable_web_page_preview=1&text=$SUCCESS_PIPELINE&parse_mode=Markdown" https://api.telegram.org/bot$JUNIOR_TELEGRAM_BOT_TOKEN/sendMessage'
+
+notify_on_failure:
+  stage: notify
+  script:
+    - echo "Пайплайн завершился с ошибкой. Выполняем действия..."
+    - *after_script_fail_notify
+  when: on_failure
+
+notify_on_success:
+  stage: notify
+  script:
+    - echo "Пайплайн завершился без ошибок"
+    - *after_script_deploy_success
+  when: on_success
+
+build:gradle:
+  stage: build
+  before_script:
+    - *before_start_pipeline
+    - *gradle_before
+  script:
+    - gradle build --info -x test
+  artifacts:
+    name: "$CI_PROJECT_NAME-$CI_BUILD_ID-$CI_BUILD_REF"
+    expire_in: 1 week
+    paths:
+      - build/libs/*
+
+build:docker:
+  stage: docker
+  image: docker:stable
+  services:
+    - name: docker:19.03.13-dind
+      command: [ "--registry-mirror", "https://docker-nexus-mirror.apps.bcc.kz" ]
+  before_script:
+    - *before_docker_build
+  script:
+    - docker build --cache-from $IMAGE_LATEST -t $IMAGE_NAME  .
+    - docker push $IMAGE_NAME
+
+release:
+  stage: release
+  image: docker:stable
+  only:
+    - /^release-v.*$/i
+  services:
+    - name: docker:19.03.13-dind
+      command: [ "--registry-mirror", "https://docker-nexus-mirror.apps.bcc.kz" ]
+  before_script:
+    - *docker_before
+  script:
+    - docker pull $IMAGE_NAME
+    - docker tag $IMAGE_NAME $IMAGE_LATEST
+    - docker push $IMAGE_LATEST
+    - docker tag $IMAGE_NAME ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}
+    - docker push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}
+
+.base_deploy: &base_deploy
+  stage: deploy
+  image: registry-gitlab.bcc.kz/infrastructure/alpine-git-yq:v1.0.0
+  interruptible: true
+  before_script:
+    - mkdir -p ~/.ssh
+    - ssh-keyscan -p 3022 ssh.gitlab.bcc.kz > ~/.ssh/known_hosts
+    - eval $(ssh-agent -s)
+    - echo "$GITLAB_CI_DEPLOY_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 400 ~/.ssh/id_rsa
+    - ssh-add ~/.ssh/id_rsa
+    - ssh -T git@ssh.gitlab.bcc.kz -p 3022
+    - git config --global user.email "devops@bcc.kz"
+    - git config --global user.name "DevOps"
+    - git clone ssh://git@ssh.gitlab.bcc.kz:3022/digital-banking-platform/helm-charts/dbp-juniorbank/$CI_PROJECT_NAME.git
+    - cd $CI_PROJECT_NAME
+  script:
+    - git checkout $BCC_ENVIRONMENT
+    - bcc-helm-helper --file ${BCC_HELM_VALUES} --tag ${CI_COMMIT_REF_SLUG} --hash ${CI_COMMIT_SHORT_SHA}
+    - git add .
+    - git commit -m "Deploy to ${BCC_ENVIRONMENT}, Image ${CI_COMMIT_REF_SLUG}, Hash ${CI_COMMIT_SHORT_SHA}, Commit ${CI_COMMIT_TITLE}"
+    - git push origin $BCC_ENVIRONMENT
+
+Deploy Development:
+  <<: *base_deploy
+  only:
+    - develop
+  variables:
+    BCC_ENVIRONMENT: develop
+    BCC_HELM_VALUES: values-development.yaml
+
+Deploy to test:
+  <<: *base_deploy
+  only:
+    - test
+  variables:
+    BCC_ENVIRONMENT: test
+    BCC_HELM_VALUES: values-test.yaml
+
+Deploy Production:
+  <<: *base_deploy
+  when: manual
+  only:
+    - /^release-v.*$/i
+  variables:
+    BCC_ENVIRONMENT: production
+    BCC_HELM_VALUES: values-production.yaml

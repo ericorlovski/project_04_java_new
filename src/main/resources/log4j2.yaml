@@ -1,0 +1,27 @@
+Configuration:
+  status: INFO
+
+  Properties:
+    Property:
+      - name: PID
+        value: ????
+      - name: logExceptionConversionWord
+        value: "%xwEx"
+      - name: logLevelPattern
+        value: "%5p"
+      - name: logDateFormatPattern
+        value: dd-MM-yyyy HH:mm:ss.SSS
+      - name: logPattern
+        value: "%clr{%d{${logDateFormatPattern}}}{faint} %clr{${logLevelPattern}} %clr{${sys:PID}}{magenta} %clr{---}{faint} %clr{[%15.15t]}{faint} : MDC=[%X{traceId}]; %clr{%-40.40c{1.}}{cyan} %clr{:}{faint} %m%n${sys:logExceptionConversionWord}"
+
+  Appenders:
+    Console:
+      name: stdout
+      PatternLayout:
+        pattern: ${logPattern}
+
+  Loggers:
+    Root:
+      level: info
+      AppenderRef:
+        - ref: stdout
